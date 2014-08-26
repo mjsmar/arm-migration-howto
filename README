@@ -5,7 +5,7 @@
 
 # NFS Client - if your target distro supports nfs-client package install (i.e.
 # apt-get install nfs-clinet) then save time and use that, otherwise -
-o Must build 'rpcbind' portmapper for NIS servirces
+o must build 'rpcbind' portmapper for NIS services
 o            'rpc.statd' or statd - the client FS lock and access daemon
 o rpcbind must run before statd, 'statd' uses NIS portmapper services of 
   'rpcbind' to discover NIS port for NFS on the server
@@ -42,7 +42,7 @@ rpcbind
 statd -L
 
 #NFS Server Setup - any x86_64 Ubunuty with nfs-server installed
-# add to '/etc/exports' (Ubunut 13.10 (Saucy), using 192.168.* example.
+# add to '/etc/exports' (Ubunut 13.10 - Saucy), using 192.168.* example.
 /srv/ 192.168.*(rw,sync,no_root_squash,no_subtree_check,insecure)
 
 service --status-all 2>&1 | grep nfs
@@ -53,8 +53,8 @@ showmount -e <IP> # should have mounts exported
 mount.nfs -w 192.168.10.10:/srv /mnt
 
 # Server '/srv/migration' contents
-  o qemu-system-arm, guest[1,2].root, gueset-a15.dtb(not used for machvirt) 
-    guest zImage. Two root images to run multiple migrations
+  o qemu-system-arm, guest[1,2].root, gueset-a15.dtb (for VExpress) 
+    guest zImage. Few root images to run multiple migrations
   - The guest rootfs, dtb, zImage - pretty much what you use now to bring
     up a guest - just place them in share mount.
 
@@ -71,46 +71,45 @@ Dest:
 Source:
 /mnt/migration/qemu-system-arm -savedirtylog -enable-kvm -smp 2 -kernel /mnt/migration/zImage -dtb /mnt/migration/guest-a15.dtb -m 1792 -M vexpress-a15 -cpu cortex-a15 -nographic -append "root=/dev/vda rw console=ttyAMA0 rootwait" -drive if=none,file=/mnt/migration/guest1.root,id=vm1 -device virtio-blk-device,drive=vm1 -netdev type=tap,id=net0,ifname=tap0 -device virtio-net-device,netdev=net0,mac="52:54:00:12:34:58"
 
-# mchvirt - 'dummy virtual machine'
+# machvirt - 'dummy virtual machine'
 /mnt/migration/qemu-system-arm-opt -savedirtylog -enable-kvm -smp 2 -kernel /mnt/migration/zImage -m 1792 -M virt -cpu cortex-a15 -nographic -append "root=/dev/vda rw console=ttyAMA0 rootwait" -drive if=none,file=/mnt/migration/gauss.root,id=vm1 -device virtio-blk-device,drive=vm1 -netdev type=tap,id=net0,ifname=tap0 -device virtio-net-device,netdev=net0,mac="52:54:00:12:34:58" -incoming tcp:0:4321
 
 /mnt/migration/qemu-system-arm-opt -savedirtylog -enable-kvm -smp 2 -kernel /mnt/migration/zImage -m 1792 -M virt -cpu cortex-a15 -nographic -append "root=/dev/vda rw console=ttyAMA0 rootwait" -drive if=none,file=/mnt/migration/gauss.root,id=vm1 -device virtio-blk-device,drive=vm1 -netdev type=tap,id=net0,ifname=tap0 -device virtio-net-device,netdev=net0,mac="52:54:00:12:34:58"
 
-NOTE: under very high migration rates console locks up destinationj, telnet 
-      works fine [3.16.0-rc1], VExpress doesn't seem to have that problem.
-
-# Tests performed on two Exynos5440, emulator not really fit for migration,
-# inittial tests without dirty page logging succeeded on light loads. But can
-# still try and use FastModels.
+# Tests performed on two Exynos5440 4-way SMP, emulator not really fit for 
+# migration, inittial tests without dirty page logging succeeded on light loads.
+# but you can still try and use FastModels.
 #
 # On source 
-# run the very simple './dirtyram.arm' binary 
+# run very simple './dirtyram.arm' binary 
 # Total RAM 409600 pages -->  ~1.7GB, dirty 2048 pages or every 200'th page 
 # with interval of 30mS. You can run multiple copies, cause swapping but 
 # if dirty rate exceeds copy rate, migration won't converge. Same program
-# can be used on host to get system into paging stress mmu-notifiers (swapon -s)
+# can be used on host to get system into paging stress mmu-notifiers 
+# (check memory overcommit with swapon -s)
   # 
   o ./dirtyram.arm 409600 2048 30 & 
   o ./writedate.sh	# print time on target resume with same time on dest.
-  o Source ^ac migrate -d tcp:<IP:port>
-
+  o Source command: break in ^ac; issue migrate -d tcp:<IP:port>
 
 # Copy lmbench/multiarch/lmbench3 -or- no-multiarch to guest FS, depending on
 # distro type. To compare you can also copy to host. 
 # Run lmbench while migrating
 # Configure (if you don't change VM virtual hw between runs configure once)
-# configure to hardware specs
+# configure to likely performance specs
   o cd lmbench3/src; ../scripts/config-run
 # Run benchmark
   o rm -rf /vart/tmp/lmbench or /tmp ... i.e. the lmbench results dir.
   o ../scripts/results
-# Run at high rate with LMBench running to provide some sense of performance
-# during migration. So far no real performance benchmarks have been compiled. 
+# Run a high memory dirty rate with LMBench running to provide some sense of 
+# performance during migration. So far no real performance benchmarks have been
+# compiled. Migration time (if ever) will vary on hw and what lmbench is doing.
   o ./dirtyram.arm 409600 2048 5 & 
   o migrate 
 
-# Basic Network test - see configuration used in pdf. Example limited due
-# number of interfaces - public, image/storage, ..., one interface shared.
+# Basic Network test - see configuration used in pdf. Example limited due ot
+# number of interfaces - no public, image/storage, ... interfaces, one 
+# interface shared.
 # 
 Source host IP 192.168.10.101/24, VM tap0 192.168.2.1/24 and
 VM eth0 192.168.2.100/24 with default route 192.168.2.1
@@ -129,17 +128,21 @@ ssh should resume after route switch. ping as well should work seamlessly.
 
 # Bring up on ARMv8
 # Currently there is small overlap with ARMv8 2nd stage page fault handling,
-# kernel was compiled for ARMv8 made to verify it comes up and can run some 
-# memory tests. Minimal work required to enable dirty page logging for ARMv8,
+# kernel was compiled for ARMv8 to verify it comes up and can run some 
+# memory tests (i.e. make sure nothing is broke). 
+#
+# Minimal work required to enable dirty page logging for ARMv8,
 # but migration may require quite a bit more work. This assumes you used
-# Foundation Model before.
+# Foundation Model, and kvmtool before 
+#  - https://wiki.ubuntu.com/ARM64/FoundationModel is helpful. Also see
+# virtual open systems.
 
 Foundation_v8 --image ./image-foundation_NFS.axf --network=net
 ./lkvm-static run --kernel Image -d rootfs.img -m 512 --console virtio --params "earlyprintk=smh console=hvc0 rw root=/dev/vda"
 
 # x86_64 - basic migrate regression test, there is greater patch overlap
 #       with x86_64 then other architectures, and x86_64 HW is easily available.
-# 	this test validated local migration with a light load 
+# 	This test validated local migration with a light load 
 #	(./dirtyram.arm 409600 2048 250) - tested on Ubuntu 13.10, HP Z620 
 qemu-system-x86_64 -enable-kvm -smp 2 -m 1024 --kernel ./bzImage-3.16.0-rc1 \
 	-initrd intird.img-3.16.0-rc1-custom \
@@ -148,6 +151,6 @@ qemu-system-x86_64 -enable-kvm -smp 2 -m 1024 --kernel ./bzImage-3.16.0-rc1 \
 	-append "root=/dev/vda rw init=/sbin/init console=ttyS0 rootwait" \
 	-nographic
 
-# For destination the usual option, then from source VM migrate over loopaback
+# For destination the usual option, then from source VM migrate using loopaback
  --incoming tcp:0:321
 
