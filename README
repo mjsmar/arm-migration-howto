@@ -77,7 +77,7 @@ Source:
 /mnt/migration/qemu-system-arm-opt -savedirtylog -enable-kvm -smp 2 -kernel /mnt/migration/zImage -m 1792 -M virt -cpu cortex-a15 -nographic -append "root=/dev/vda rw console=ttyAMA0 rootwait" -drive if=none,file=/mnt/migration/gauss.root,id=vm1 -device virtio-blk-device,drive=vm1 -netdev type=tap,id=net0,ifname=tap0 -device virtio-net-device,netdev=net0,mac="52:54:00:12:34:58"
 
 # Tests performed on two Exynos5440 4-way SMP, emulator not really fit for 
-# migration, inittial tests without dirty page logging succeeded on light loads.
+# migration, initial tests without dirty page logging succeeded on light loads.
 # but you can still try and use FastModels.
 #
 # On source 
